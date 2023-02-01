@@ -1,6 +1,8 @@
 import { basename, dirname, extname, resolve, join } from 'path'
 
-import { build, Metafile } from '@netlify/esbuild'
+import { build, Metafile } from 'esbuild'
+// eslint-disable-next-line import/default
+import yamlPlugin from 'esbuild-plugin-yaml'
 import { tmpName } from 'tmp-promise'
 
 import type { FunctionConfig } from '../../../../config.js'
@@ -12,7 +14,6 @@ import { getFileExtensionForFormat, ModuleFormat } from '../../utils/module_form
 import { NodeBundlerType } from '../types.js'
 
 import { getBundlerTarget, getModuleFormat } from './bundler_target.js'
-import { getDynamicImportsPlugin } from './plugin_dynamic_imports.js'
 import { getNativeModulesPlugin } from './plugin_native_modules.js'
 import { getNodeBuiltinPlugin } from './plugin_node_builtin.js'
 
@@ -28,7 +29,7 @@ const RESOLVE_EXTENSIONS = ['.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.mts'
 // eslint-disable-next-line max-statements
 export const bundleJsFile = async function ({
   additionalModulePaths,
-  basePath,
+  // basePath,
   config,
   externalModules = [],
   featureFlags,
@@ -70,17 +71,8 @@ export const bundleJsFile = async function ({
   const dynamicImportsIncludedPaths: Set<string> = new Set()
 
   // The list of esbuild plugins to enable for this build.
-  const plugins = [
-    getNodeBuiltinPlugin(),
-    getNativeModulesPlugin(nativeNodeModules),
-    getDynamicImportsPlugin({
-      basePath,
-      includedPaths: dynamicImportsIncludedPaths,
-      moduleNames: nodeModulesWithDynamicImports,
-      processImports: config.processDynamicNodeImports !== false,
-      srcDir,
-    }),
-  ]
+  // eslint-disable-next-line import/no-named-as-default-member
+  const plugins = [getNodeBuiltinPlugin(), getNativeModulesPlugin(nativeNodeModules), yamlPlugin.yamlPlugin({})]
 
   // The version of ECMAScript to use as the build target. This will determine
   // whether certain features are transpiled down or left untransformed.
@@ -119,6 +111,8 @@ export const bundleJsFile = async function ({
     const { metafile = { inputs: {}, outputs: {} }, warnings } = await build({
       banner: moduleFormat === ModuleFormat.ESM ? { js: esmJSBanner } : undefined,
       bundle: true,
+      treeShaking: true,
+      minify: true,
       entryPoints: [srcFile],
       external,
       format: moduleFormat,

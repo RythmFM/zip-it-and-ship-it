@@ -1,4 +1,4 @@
-import type { Message } from '@netlify/esbuild'
+import type { Message } from 'esbuild'
 
 import type { FunctionConfig } from '../../../config.js'
 import type { FeatureFlag, FeatureFlags } from '../../../feature_flags.js'
